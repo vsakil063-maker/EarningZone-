@@ -1,8 +1,12 @@
 package com.example.microtask
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.media.RingtoneManager
+import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -34,10 +38,20 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationCompat
+import androidx.work.CoroutineWorker
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // অ্যাপ বন্ধ থাকলেও ব্যাকগ্রাউন্ডে সাউন্ডসহ নোটিফিকেশন পাঠানোর শিডিউলার চালু
+        scheduleBackgroundNotifications(this)
+
         setContent {
             MicroTaskApp()
         }
@@ -64,7 +78,6 @@ fun MicroTaskApp() {
     var isAuthSheetOpen by remember { mutableStateOf(false) }
     var authSheetView by remember { mutableStateOf("register") }
 
-    // Dashboard State
     var isBalanceHidden by remember { mutableStateOf(false) }
     var showDepositModal by remember { mutableStateOf(false) }
     var showReferModal by remember { mutableStateOf(false) }
@@ -75,7 +88,6 @@ fun MicroTaskApp() {
             .background(AppDarkBg)
     ) {
         if (userSession == null) {
-            // 1. INVEZO WELCOME & AUTH SCREEN
             InvezoAuthScreen(
                 onOpenSheet = { view ->
                     authSheetView = view
@@ -83,7 +95,6 @@ fun MicroTaskApp() {
                 }
             )
         } else {
-            // 2. MAIN MICROTASK DASHBOARD
             MainDashboard(
                 user = userSession!!,
                 isBalanceHidden = isBalanceHidden,
@@ -97,7 +108,6 @@ fun MicroTaskApp() {
             )
         }
 
-        // --- AUTH SHEET ---
         if (isAuthSheetOpen) {
             ModalBottomSheet(
                 onDismissRequest = { isAuthSheetOpen = false },
@@ -115,12 +125,10 @@ fun MicroTaskApp() {
             }
         }
 
-        // --- DEPOSIT SHEET ---
         if (showDepositModal) {
             DepositModalDialog(onDismiss = { showDepositModal = false })
         }
 
-        // --- REFER SHEET ---
         if (showReferModal) {
             ReferModalDialog(
                 uid = userSession?.uid ?: "784219",
@@ -130,7 +138,7 @@ fun MicroTaskApp() {
     }
 }
 
-// ----------------- 1. INVEZO AUTH -----------------
+// ----------------- INVEZO AUTH -----------------
 @Composable
 fun InvezoAuthScreen(onOpenSheet: (String) -> Unit) {
     Column(
@@ -224,7 +232,7 @@ fun InvezoAuthSheetContent(initialView: String, onSuccess: (UserSession) -> Unit
     }
 }
 
-// ----------------- 2. MAIN DASHBOARD -----------------
+// ----------------- MAIN DASHBOARD -----------------
 @Composable
 fun MainDashboard(
     user: UserSession,
@@ -246,7 +254,6 @@ fun MainDashboard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item { Spacer(modifier = Modifier.height(4.dp)) }
-            // HEADER
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -323,7 +330,6 @@ fun MainDashboard(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // SUB STATS
                         Row(
                             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFF061124).copy(0.7f)).padding(8.dp),
                             horizontalArrangement = Arrangement.SpaceAround
@@ -336,7 +342,7 @@ fun MainDashboard(
                 }
             }
 
-            // ACTIONS (DEPOSIT & WITHDRAW)
+            // ACTIONS
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
@@ -400,7 +406,7 @@ fun BottomBar(onOpenRefer: () -> Unit) {
     }
 }
 
-// ----------------- 3. DEPOSIT MODAL -----------------
+// ----------------- DEPOSIT MODAL -----------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DepositModalDialog(onDismiss: () -> Unit) {
@@ -438,7 +444,7 @@ fun DepositModalDialog(onDismiss: () -> Unit) {
     }
 }
 
-// ----------------- 4. REFER MODAL -----------------
+// ----------------- REFER MODAL -----------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReferModalDialog(uid: String, onDismiss: () -> Unit) {
@@ -467,4 +473,54 @@ fun ReferModalDialog(uid: String, onDismiss: () -> Unit) {
             }
         }
     }
+}
+
+// ================= ব্যাকগ্রাউন্ড নোটিফিকেশন সিস্টেম =================
+class BackgroundNotificationWorker(
+    private val context: Context,
+    workerParams: WorkerParameters
+) : CoroutineWorker(context, workerParams) {
+
+    override suspend fun doWork(): Result {
+        showBackgroundNotification(context)
+        return Result.success()
+    }
+
+    private fun showBackgroundNotification(context: Context) {
+        val channelId = "microtask_channel_id"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "MicroTask Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Task & Earnings Notification"
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.stat_notify_chat)
+            .setContentTitle("🎉 নতুন টাস্ক যোগ হয়েছে!")
+            .setContentText("আজকের ভিডিও ও টাইপিং টাস্ক সম্পন্ন করে ব্যালেন্স বাড়িয়ে নিন।")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(soundUri)
+            .setAutoCancel(true)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
+}
+
+fun scheduleBackgroundNotifications(context: Context) {
+    val notificationRequest = PeriodicWorkRequestBuilder<BackgroundNotificationWorker>(
+        2, TimeUnit.HOURS
+    ).build()
+
+    WorkManager.getInstance(context).enqueue(notificationRequest)
 }
