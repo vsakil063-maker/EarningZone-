@@ -22,7 +22,11 @@ android {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
@@ -36,5 +40,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
+    // কনফ্লিক্ট মুক্ত স্টেবল নোটিফিকেশন লাইব্রেরি
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 }
