@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // অ্যাপ বন্ধ থাকলেও ব্যাকগ্রাউন্ডে সাউন্ডসহ নোটিফিকেশন পাঠানোর শিডিউলার চালু
+        // ব্যাকগ্রাউন্ডে নোটিফিকেশন পাঠানোর শিডিউলার চালু
         scheduleBackgroundNotifications(this)
 
         setContent {
@@ -398,7 +398,8 @@ fun BottomBar(onOpenRefer: () -> Unit) {
             Icon(Icons.Default.Home, null, tint = CyanAccent)
             Icon(Icons.Default.Assignment, null, tint = Color(0xFFB757FF))
             Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(CyanAccent), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.HeadsetMic, null, tint = Color.Black)
+                // সংশোধনকৃত Headphones আইকন
+                Icon(Icons.Default.Headphones, null, tint = Color.Black)
             }
             Icon(Icons.Default.History, null, tint = SuccessGreen)
             Icon(Icons.Default.Group, null, tint = Color(0xFFFF9800), modifier = Modifier.clickable { onOpenRefer() })
