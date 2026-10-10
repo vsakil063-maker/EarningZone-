@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ব্যাকগ্রাউন্ডে নোটিফিকেশন পাঠানোর শিডিউলার চালু
+        // ব্যাকগ্রাউন্ড নোটিফিকেশন চালু
         scheduleBackgroundNotifications(this)
 
         setContent {
