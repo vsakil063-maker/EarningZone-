@@ -38,8 +38,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
+import androidx.work.ListenableWorker
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -398,8 +400,7 @@ fun BottomBar(onOpenRefer: () -> Unit) {
             Icon(Icons.Default.Home, null, tint = CyanAccent)
             Icon(Icons.Default.Assignment, null, tint = Color(0xFFB757FF))
             Box(modifier = Modifier.size(48.dp).clip(CircleShape).background(CyanAccent), contentAlignment = Alignment.Center) {
-                // সংশোধনকৃত Headphones আইকন
-                Icon(Icons.Default.Headphones, null, tint = Color.Black)
+                Icon(Icons.Default.Call, null, tint = Color.Black)
             }
             Icon(Icons.Default.History, null, tint = SuccessGreen)
             Icon(Icons.Default.Group, null, tint = Color(0xFFFF9800), modifier = Modifier.clickable { onOpenRefer() })
@@ -407,16 +408,15 @@ fun BottomBar(onOpenRefer: () -> Unit) {
     }
 }
 
-// ----------------- DEPOSIT MODAL -----------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ----------------- DEPOSIT MODAL (FIXED WITH DIALOG) -----------------
 @Composable
 fun DepositModalDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     var selectedMethod by remember { mutableStateOf("Nagad") }
     var trxId by remember { mutableStateOf("") }
 
-    AlertDialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(20.dp), color = Color(0xFF1E0A05), modifier = Modifier.padding(16.dp)) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = Color(0xFF1E0A05), modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Deposit Funds", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(10.dp))
@@ -445,15 +445,14 @@ fun DepositModalDialog(onDismiss: () -> Unit) {
     }
 }
 
-// ----------------- REFER MODAL -----------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ----------------- REFER MODAL (FIXED WITH DIALOG) -----------------
 @Composable
 fun ReferModalDialog(uid: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val link = "https://microtask.app/?user=$uid"
 
-    AlertDialog(onDismissRequest = onDismiss) {
-        Surface(shape = RoundedCornerShape(20.dp), color = Color.White, modifier = Modifier.padding(16.dp)) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(shape = RoundedCornerShape(20.dp), color = Color.White, modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text("Referral Bonus", color = Color(0xFF102D5F), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(modifier = Modifier.height(10.dp))
@@ -482,9 +481,9 @@ class BackgroundNotificationWorker(
     workerParams: WorkerParameters
 ) : CoroutineWorker(context, workerParams) {
 
-    override suspend fun doWork(): Result {
+    override suspend fun doWork(): ListenableWorker.Result {
         showBackgroundNotification(context)
-        return Result.success()
+        return ListenableWorker.Result.success()
     }
 
     private fun showBackgroundNotification(context: Context) {
